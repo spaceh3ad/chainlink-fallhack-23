@@ -1,0 +1,93 @@
+@startuml
+
+enum ClaimStatus {
+    PENDING
+    APPROVED
+    DENIED
+    DISPUTE
+    APPROVED_DISPUTE
+    DENIED_DISPUTE
+}
+
+enum PolicyStatus {
+    ACTIVE
+    INACTIVE
+}
+
+' Define Classes
+
+class InsurancePlatform {
+    - policies: mapping(int, Policy)
+    - claims: mapping(int, Claim)
+    - reserveFund: ReserveFund
+    - governance: Governance
+    - chainlinkOracle: ChainlinkOracle
+    + createPolicy(premium, coverageLimit, termsHash): Policy
+    + submitClaim(policyId, claimDetails): Claim
+}
+
+class Claim {
+    - claimId: int
+    - claimDetails: string
+    - claimStatus: ClaimStatus
+    - claimAmount: double
+    - claimant: Address
+    - policyId: int
+    - ipfsEvidence: string
+}
+
+class ChainlinkOracle {
+    + riskAssessment
+    + claimProcessing
+}
+
+class ReserveFund implements ERC4626 {
+    - balance: double
+    + deposit(amount): bool
+    + withdraw(amount): bool
+    + getBalance(): double
+}
+
+class Governance {
+    - proposals: list
+    - voters: list
+    + submitClaimDispute(proposalDetails): bool
+    + voteOnClaimDispute(proposalId, vote): bool
+    + executeDisputeResult(proposalId): bool
+}
+
+class InsurancePolicy {
+    - policyId: int
+    - premium: double
+    - coverageLimit: double
+    - termsHash: string
+    - policyStatus: PolicyStatus
+    + payPremium(): bool
+    + submitClaim(claimDetails): bool
+    + checkPolicyValidity(): bool
+}
+
+class LiquidityProviders {}
+
+class Users {}
+
+' Define Interfaces
+
+interface ERC4626 {}
+
+
+InsurancePlatform "1" -- "*" InsurancePolicy : manages >
+InsurancePlatform "1" -- "*" Claim : oversees >
+InsurancePlatform "1" -- "1" ReserveFund : uses >
+
+Users "*" -- "*" InsurancePolicy : owns >
+Users "*" -- "*" InsurancePolicy : pays premium >
+Users "*" -- "*" InsurancePlatform : submits claim >
+
+LiquidityProviders "*" -up- "*" ReserveFund : provides funds >
+
+Governance -- "*" InsurancePlatform : disputes claims >
+ReserveFund -- "*" InsurancePlatform : pays out >
+
+InsurancePlatform -- "*" ChainlinkOracle : forwards claim >
+@enduml
